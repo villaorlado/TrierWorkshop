@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+#sigma-container{
+	position:relative;
+	width:800px;
+	height:800px;
+}
+		
+#infoWindow{
+	position:fixed;
+	top:10px;
+	right:10px;
+	padding:10px;
+	box-shadow:1px 1px 10px gray;
+	border:1px solid black;
+	z-index:100;
+}		
+</style>
+</head>
+
+<body>
+	
+<div id="sigma-container"></div>
+<div id="infoWindow"></div>
+	
+<script src="js/jquery.js"></script>
+<script src="js/sigma.js"></script>
+<script src="js/sigma.parsers.gexf.min.js"></script>
+	
+<script>
+
+//Additional method to determine a node's neighbors	
+sigma.classes.graph.addMethod('neighbors', function(nodeId) {
+	var k,
+	neighbors = {},
+	index = this.allNeighborsIndex[nodeId] || {};
+
+	for (k in index)
+		neighbors[k] = this.nodesIndex[k];
+		return neighbors;
+});
+
+//This is where we load the Gephi file
+sigma.parsers.gexf(
+	'data/wayang.gexf',
+    { // Here is the ID of the DOM element that will contain the graph:
+		container: 'sigma-container',
+			settings: {
+				minNodeSize: 2,
+				maxNodeSize: 10,
+    }
+    },
+    function(s) {
+		// This function will be executed when the
+        // graph is displayed, with "s" the related
+        // sigma instance.
+        s.graph.nodes().forEach(function(n) {
+			n.originalColor = n.color;
+            n.originalLabel = n.label;
+        });
+        s.graph.edges().forEach(function(e) {
+			e.originalColor = e.color;
+        });
+
+        // When a node is clicked, we check for each node
+        // if it is a neighbor of the clicked one. If not,
+        // we set its color as grey, and else, it takes its
+        // original color.
+        // We do the same for the edges, and we only keep
+        // edges that have both extremities colored.
+		s.bind('clickNode', function(e) {
+			var nodeId = e.data.node.id,
+				toKeep = s.graph.neighbors(nodeId);
+            
+            toKeep[nodeId] = e.data.node;
+
+            s.graph.nodes().forEach(function(n) {
+				if (toKeep[n.id]){
+					n.color = n.originalColor;
+					n.label = n.originalLabel;
+				}
+				else{
+					n.color = '#eee';
+					n.label = "";
+				}
+            });
+
+			//colors for the edges included in the subgraph
+            s.graph.edges().forEach(function(e) {
+				if (toKeep[e.source] && toKeep[e.target]){
+					e.color = e.originalColor;
+				}
+				else{
+					e.color = '#eee';
+				}
+            });
+
+			//display additional information
+			explanation = "<p><h1>" + e.data.node.label +"</h1>";
+            explanation += "<p><br/>Degree: " + e.data.node.attributes.degree;
+            explanation += "<br/>Weighted degree: " + e.data.node.attributes["weighted degree"];
+            explanation += "<br/>Eccentricity: " + e.data.node.attributes.eccentricity;
+            explanation += "<br/>Closeness centrality: " + parseFloat(e.data.node.attributes.closnesscentrality).toFixed(2);
+            explanation += "<br/>Betweenness centrality: " + e.data.node.attributes.betweenesscentrality.toFixed(2);
+            explanation += "<br/>Clustering: " + e.data.node.attributes.clustering.toFixed(2);
+            explanation += "<br/>Origin: " + e.data.node.attributes.origin;
+            explanation += "<br/>Type of character: " + e.data.node.attributes.type;
+            $("#infoWindow").html(explanation);
+
+            // Since the data has been modified, we need to
+            // call the refresh method to make the colors
+            // update effective.
+            s.refresh();
+		});
+
+        // When the stage is clicked, we just color each
+        // node and edge with its original color.
+        s.bind('clickStage', function(e) {
+			s.graph.nodes().forEach(function(n) {
+				n.color = n.originalColor;
+				n.label = n.originalLabel;
+            });
+
+            s.graph.edges().forEach(function(e) {
+              e.color = e.originalColor;
+            });
+
+            // Same as in the previous event:
+            s.refresh();
+        });
+
+	}
+);
+</script>
+	
+</body>
+</html>
