@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link type="text/css" rel="stylesheet" href="css/dataTables.min.css" />
+</head>
+<body>
+<script src="js/jquery.js"></script>
+<script src="js/dataTables.min.js"></script>
+
+<table id="dataTable" class="display" cellspacing="0" width="100%">
+	<thead>
+		<tr>
+        </tr>
+	</thead>
+</table>
+
+<script>
+//container JSON object
+var json = {"data":{}}; 
+
+$.ajax({
+    url: "data/miserables.csv", //the name of the csv file
+    async: false,
+    dataType: "text",
+    success: function (csv) {
+        toJSON(csv);
+    }
+});
+
+function toJSON (data){
+	lines = data.match(/[^\r\n]+/g);
+	//populate the array
+	dataArray = []
+	var i;
+	for (i= 1; i<lines.length; i++){
+		dataArray.push(lines[i].split(","));
+	}
+	json["data"] = dataArray;
+	//make the table
+	headers = lines[0].split(",");
+	for (j in headers){
+		$('<th></th>').text(headers[j]).appendTo($("#dataTable>thead>tr"));
+	}	
+	table = $("#dataTable").DataTable(json);
+}
+
+</script>
+</body>
+</html>
